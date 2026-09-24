@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ore Mine</title>
+
+<!-- ============================================================
+     🔥 MONETAG SDK — Zone ID: 11873387
+     ============================================================ -->
+<script src='//libtl.com/sdk.js' data-zone='11873387' data-sdk='show_11873387'></script>
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    min-height: 100vh;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .container { width: 100%; max-width: 420px; padding: 20px; text-align: center; }
+
+  .header { margin-bottom: 20px; }
+  .header h1 {
+    font-size: 32px;
+    background: linear-gradient(90deg, #f39c12, #e74c3c, #f39c12);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 30px rgba(243, 156, 18, 0.3);
+    letter-spacing: 2px;
+  }
+  .header p { font-size: 13px; color: #8899aa; margin-top: 5px; }
+
+  .ore-display {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(243, 156, 18, 0.3);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+  }
+
+  .ore-icon { font-size: 50px; display: block; margin-bottom: 5px; animation: float 3s ease-in-out infinite; }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+  .ore-count { font-size: 42px; font-weight: bold; color: #f39c12; text-shadow: 0 0 20px rgba(243, 156, 18, 0.5); }
+  .ore-label { font-size: 14px; color: #8899aa; margin-top: 5px; }
+
+  .progress-section { margin-bottom: 20px; }
+  .progress-info { display: flex; justify-content: space-between; font-size: 12px; color: #8899aa; margin-bottom: 6px; }
+  .progress-bar-bg { width: 100%; height: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 5px; overflow: hidden; }
+  .progress-bar-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #f39c12, #e67e22);
+    border-radius: 5px;
+    transition: width 0.3s ease;
+  }
+
+  .tap-area { position: relative; margin: 20px 0; }
+
+  .tap-btn {
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    border: none;
+    background: radial-gradient(circle at 30% 30%, #f39c12, #e67e22, #d35400);
+    box-shadow: 
+      0 0 40px rgba(243, 156, 18, 0.4),
+      0 10px 30px rgba(0, 0, 0, 0.3),
+      inset 0 -5px 15px rgba(0, 0, 0, 0.2),
+      inset 0 5px 15px rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    font-size: 60px;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    outline: none;
+    position: relative;
+  }
+
+  .tap-btn:active { transform: scale(0.92); }
+
+  .tap-btn:disabled {
+    background: radial-gradient(circle at 30% 30%, #555, #333, #222);
+    box-shadow: 0 0 20px rgba(100, 100, 100, 0.3);
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .tap-btn .tap-text {
+    font-size: 16px; font-weight: bold; color: #fff;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    position: absolute; bottom: 30px; letter-spacing: 1px;
+  }
+
+  .tap-btn .pickaxe { font-size: 65px; filter: drop-shadow(0 3px 5px rgba(0,0,0,0.3)); }
+
+  .tap-btn.locked {
+    background: radial-gradient(circle at 30% 30%, #555, #333, #222);
+    box-shadow: 0 0 30px rgba(231, 76, 60, 0.5);
+    cursor: not-allowed;
+  }
+  .tap-btn.locked .pickaxe { filter: grayscale(1); }
+
+  .lock-icon {
+    position: absolute; top: 15px; right: 15px;
+    font-size: 28px; display: none;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  .tap-btn.locked .lock-icon { display: block; }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+  }
+
+  .float-text {
+    position: absolute; font-size: 22px; font-weight: bold; color: #2ecc71;
+    pointer-events: none;
+    animation: floatUp 0.8s ease-out forwards;
+    text-shadow: 0 0 10px rgba(46, 204, 113, 0.8);
+    z-index: 100;
+  }
+
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(1.5); }
+  }
+
+  .stats {
+    display: flex; justify-content: space-around;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px; padding: 15px; margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .stat-item { text-align: center; }
+  .stat-value { font-size: 22px; font-weight: bold; color: #f39c12; }
+  .stat-label {
+    font-size: 11px; color: #8899aa; margin-top: 3px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  .cooldown-banner {
+    display: none;
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(192, 57, 43, 0.2));
+    border: 2px solid rgba(231, 76, 60, 0.5);
+    border-radius: 15px; padding: 15px; margin-bottom: 20px;
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+  .cooldown-banner.active { display: block; }
+
+  @keyframes pulse-border {
+    0%, 100% { border-color: rgba(231, 76, 60, 0.5); }
+    50% { border-color: rgba(231, 76, 60, 1); }
+  }
+
+  .cooldown-banner h3 { font-size: 16px; color: #e74c3c; margin-bottom: 8px; }
+  .cooldown-timer {
+    font-size: 28px; font-weight: bold; color: #fff;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+  }
+  .cooldown-banner p { font-size: 12px; color: #8899aa; margin-top: 5px; }
+
+  .btn-group { display: flex; flex-direction: column; gap: 12px; }
+
+  .btn {
+    padding: 15px 20px; border: none; border-radius: 15px;
+    font-size: 16px; font-weight: bold; cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; letter-spacing: 0.5px; outline: none;
+  }
+
+  .btn:active { transform: scale(0.96); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-ad {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: #fff;
+    box-shadow: 0 5px 20px rgba(52, 152, 219, 0.3);
+  }
+
+  .btn-ad.pulse-active { animation: ad-pulse 1.5s ease-in-out infinite; }
+
+  @keyframes ad-pulse {
+    0%, 100% { box-shadow: 0 5px 20px rgba(52, 152, 219, 0.3); transform: scale(1); }
+    50% { box-shadow: 0 5px 35px rgba(52, 152, 219, 0.8); transform: scale(1.03); }
+  }
+
+  .btn-list {
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    color: #fff;
+    box-shadow: 0 5px 20px rgba(155, 89, 182, 0.3);
+  }
+
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.8); display: none;
+    justify-content: center; align-items: center;
+    z-index: 1000; backdrop-filter: blur(5px);
+  }
+  .modal-overlay.active { display: flex; }
+
+  .modal {
+    background: linear-gradient(180deg, #1a1a2e, #16213e);
+    border: 2px solid rgba(243, 156, 18, 0.3);
+    border-radius: 20px; padding: 30px;
+    width: 90%; max-width: 350px; text-align: center;
+    animation: modalIn 0.3s ease;
+  }
+
+  @keyframes modalIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .modal h2 { font-size: 22px; margin-bottom: 10px; color: #f39c12; }
+  .modal p {
+    font-size: 14px; color: #8899aa; margin-bottom: 20px;
+    line-height: 1.6; white-space: pre-line;
+  }
+
+  .modal .ore-reward {
+    font-size: 36px; font-weight: bold; color: #2ecc71;
+    margin: 15px 0; text-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
+  }
+
+  .btn-close {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: #fff; padding: 12px 30px; border: none;
+    border-radius: 12px; font-size: 15px; font-weight: bold;
+    cursor: pointer; transition: all 0.2s; outline: none;
+  }
+  .btn-close:active { transform: scale(0.95); }
+
+  .ad-progress {
+    width: 100%; height: 6px; background: rgba(255,255,255,0.1);
+    border-radius: 3px; margin: 15px 0; overflow: hidden;
+  }
+  .ad-progress-bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #3498db, #2ecc71);
+    border-radius: 3px; transition: width 0.1s linear;
+  }
+
+  .toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: rgba(46, 204, 113, 0.95); color: #fff;
+    padding: 12px 25px; border-radius: 12px;
+    font-size: 14px; font-weight: bold;
+    transition: transform 0.3s ease;
+    z-index: 2000; backdrop-filter: blur(10px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    max-width: 90%; text-align: center;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.error { background: rgba(231, 76, 60, 0.95); }
+  .toast.warning { background: rgba(243, 156, 18, 0.95); }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>⛏️ ORE MINE</h1>
+    <p>Tap to mine ore & earn rewards</p>
+  </div>
+
+  <div class="ore-display">
+    <span class="ore-icon">💎</span>
+    <div class="ore-count" id="oreCount">0</div>
+    <div class="ore-label">Total Ore Mined</div>
+  </div>
+
+  <div class="cooldown-banner" id="cooldownBanner">
+    <h3>🔒 Mining Locked!</h3>
+    <div class="cooldown-timer" id="cooldownTimer">24:00:00</div>
+    <p>Watch ad below to add more taps within 24h</p>
+  </div>
+
+  <div class="progress-section">
+    <div class="progress-info">
+      <span>Progress</span>
+      <span id="progressText">0 / 100 taps</span>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progressBar"></div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-item">
+      <div class="stat-value" id="tapCount">0</div>
+      <div class="stat-label">Taps</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="dailyEarned">0</div>
+      <div class="stat-label">Daily Earned</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="extraTaps">0</div>
+      <div class="stat-label">Extra Taps</div>
+    </div>
+  </div>
+
+  <div class="tap-area" id="tapArea">
+    <button class="tap-btn" id="tapBtn">
+      <span class="lock-icon">🔒</span>
+      <span class="pickaxe">⛏️</span>
+      <span class="tap-text">TAP</span>
+    </button>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-ad" id="watchAdBtn">
+      📺 Watch Ad (+10 Extra Taps)
+    </button>
+    <button class="btn btn-list" id="listBtn">
+      📋 List Ore for Sale
+    </button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">🎉 Reward!</h2>
+    <p id="modalMessage">You earned ore!</p>
+    <div class="ore-reward" id="modalReward">+0 💎</div>
+    <div class="ad-progress" id="adProgress" style="display:none;">
+      <div class="ad-progress-bar" id="adProgressBar"></div>
+    </div>
+    <button class="btn-close" id="modalCloseBtn">OK</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">Message</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const CONFIG = {
+    ORE_PER_100_TAPS: 50,
+    EXTRA_TAPS_PER_AD: 10,
+    ORE_PER_EXTRA_TAP: 0.5,
+    COOLDOWN_HOURS: 24,
+    BASE_TAPS: 100,
+    STORAGE_KEY: 'oreMineDataV9'
+  };
+
+  // ============================================================
+  // 🔥 MONETAG CONFIG — Zone ID: 11873387
+  // ============================================================
+  const MONETAG_FN_NAME = 'show_11873387';
+
+  let state = {
+    ore: 0,
+    totalTaps: 0,
+    baseTaps: 0,
+    extraTapsUsed: 0,
+    dailyEarned: 0,
+    extraTaps: 0,
+    cooldownUntil: 0,
+    locked: false
+  };
+
+  function loadState() {
+    try {
+      const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        state = Object.assign(state, parsed);
+      }
+    } catch(e) { console.warn('Load error:', e); }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(state));
+    } catch(e) { console.warn('Save error:', e); }
+  }
+
+  const oreCountEl = document.getElementById('oreCount');
+  const tapCountEl = document.getElementById('tapCount');
+  const dailyEarnedEl = document.getElementById('dailyEarned');
+  const extraTapsEl = document.getElementById('extraTaps');
+  const tapBtn = document.getElementById('tapBtn');
+  const tapArea = document.getElementById('tapArea');
+  const watchAdBtn = document.getElementById('watchAdBtn');
+  const listBtn = document.getElementById('listBtn');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalMessage = document.getElementById('modalMessage');
+  const modalReward = document.getElementById('modalReward');
+  const adProgress = document.getElementById('adProgress');
+  const adProgressBar = document.getElementById('adProgressBar');
+  const modalCloseBtn = document.getElementById('modalCloseBtn');
+  const toastEl = document.getElementById('toast');
+  const cooldownBanner = document.getElementById('cooldownBanner');
+  const cooldownTimer = document.getElementById('cooldownTimer');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+
+  function formatOre(value) {
+    if (Number.isInteger(value)) return value.toString();
+    return value.toFixed(1);
+  }
+
+  function getTotalTaps() {
+    return state.baseTaps + state.extraTapsUsed;
+  }
+
+  function getTotalAllowed() {
+    return CONFIG.BASE_TAPS + state.extraTaps + state.extraTapsUsed;
+  }
+
+  function updateUI() {
+    const totalTaps = getTotalTaps();
+    const totalAllowed = getTotalAllowed();
+
+    oreCountEl.textContent = formatOre(state.ore);
+    tapCountEl.textContent = totalTaps;
+    dailyEarnedEl.textContent = formatOre(state.dailyEarned);
+    extraTapsEl.textContent = state.extraTaps;
+
+    const percent = Math.min((totalTaps / totalAllowed) * 100, 100);
+    progressBar.style.width = percent + '%';
+    progressText.textContent = `${totalTaps} / ${totalAllowed} taps`;
+  }
+
+  let toastTimer;
+  function showToast(msg, type) {
+    toastEl.textContent = msg;
+    let cls = 'toast show';
+    if (type === 'error') cls += ' error';
+    else if (type === 'warning') cls += ' warning';
+    toastEl.className = cls;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toastEl.className = 'toast';
+    }, 2500);
+  }
+
+  function showFloatText(x, y, text) {
+    const el = document.createElement('div');
+    el.className = 'float-text';
+    el.textContent = text;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.position = 'fixed';
+    tapArea.appendChild(el);
+    setTimeout(() => el.remove(), 800);
+  }
+
+  function formatTime(ms) {
+    if (ms <= 0) return '00:00:00';
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return String(h).padStart(2, '0') + ':' +
+           String(m).padStart(2, '0') + ':' +
+           String(s).padStart(2, '0');
+  }
+
+  function updateLockUI() {
+    const now = Date.now();
+    const totalAllowed = getTotalAllowed();
+    const totalTaps = getTotalTaps();
+
+    if (state.locked && state.cooldownUntil <= now) {
+      state.locked = false;
+      state.cooldownUntil = 0;
+      state.baseTaps = 0;
+      state.extraTapsUsed = 0;
+      state.dailyEarned = 0;
+      state.extraTaps = 0;
+      saveState();
+      showToast('🌅 Cooldown ended! Mine again.');
+    }
+
+    if (state.locked && state.cooldownUntil > now) {
+      cooldownBanner.classList.add('active');
+      cooldownTimer.textContent = formatTime(state.cooldownUntil - now);
+    } else {
+      cooldownBanner.classList.remove('active');
+    }
+
+    if (totalTaps < totalAllowed) {
+      tapBtn.disabled = false;
+      tapBtn.classList.remove('locked');
+    } else {
+      tapBtn.disabled = true;
+      tapBtn.classList.add('locked');
+    }
+
+    watchAdBtn.disabled = false;
+    if (state.locked && state.cooldownUntil > now) {
+      watchAdBtn.classList.add('pulse-active');
+    } else {
+      watchAdBtn.classList.remove('pulse-active');
+    }
+
+    updateUI();
+  }
+
+  setInterval(updateLockUI, 1000);
+
+  function handleTap(e) {
+    e.preventDefault();
+
+    const totalAllowed = getTotalAllowed();
+    const totalTaps = getTotalTaps();
+
+    if (totalTaps >= totalAllowed) {
+      showToast('⚠️ Tap limit reached! Watch ad for +10 taps.', 'warning');
+      return;
+    }
+
+    state.totalTaps++;
+
+    let isExtraTap = false;
+
+    if (state.baseTaps < CONFIG.BASE_TAPS) {
+      state.baseTaps++;
+
+      if (state.baseTaps === CONFIG.BASE_TAPS) {
+        state.ore += CONFIG.ORE_PER_100_TAPS;
+        state.dailyEarned += CONFIG.ORE_PER_100_TAPS;
+        state.locked = true;
+        state.cooldownUntil = Date.now() + (CONFIG.COOLDOWN_HOURS * 60 * 60 * 1000);
+        saveState();
+
+        showToast(`🎉 +${CONFIG.ORE_PER_100_TAPS} Ore! Locked for 24h.`, 'warning');
+
+        modalTitle.textContent = '🔒 Mining Locked!';
+        modalMessage.textContent = `You completed ${CONFIG.BASE_TAPS} taps and earned ${CONFIG.ORE_PER_100_TAPS} ore!\n\n👉 Watch Ad below to add +10 extra taps within this 24h cycle.`;
+        modalReward.textContent = `+${CONFIG.ORE_PER_100_TAPS} 💎`;
+        adProgress.style.display = 'none';
+        modalCloseBtn.style.display = 'inline-block';
+        modalOverlay.classList.add('active');
+
+        updateLockUI();
+        return;
+      }
+    } else {
+      isExtraTap = true;
+      state.extraTapsUsed++;
+      if (state.extraTaps > 0) {
+        state.extraTaps--;
+      }
+      state.ore += CONFIG.ORE_PER_EXTRA_TAP;
+      state.dailyEarned += CONFIG.ORE_PER_EXTRA_TAP;
+    }
+
+    const rect = tapBtn.getBoundingClientRect();
+    const x = rect.left + rect.width / 2 + (Math.random() - 0.5) * 60;
+    const y = rect.top + rect.height / 2 + (Math.random() - 0.5) * 60;
+    const remaining = totalAllowed - (totalTaps + 1);
+    const text = isExtraTap
+      ? `+${CONFIG.ORE_PER_EXTRA_TAP} 💎 (${remaining} left)`
+      : `+⛏️ (${remaining} left)`;
+    showFloatText(x, y, text);
+
+    saveState();
+    updateLockUI();
+  }
+
+  tapBtn.addEventListener('click', handleTap);
+  tapBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    handleTap(e);
+  }, { passive: false });
+
+  // ============================================================
+  // 📺 WATCH AD — Monetag (Zone ID: 11873387)
+  // ============================================================
+  let adPlaying = false;
+
+  watchAdBtn.addEventListener('click', function() {
+    if (adPlaying) return;
+
+    adPlaying = true;
+    watchAdBtn.disabled = true;
+    watchAdBtn.textContent = '⏳ Loading Ad...';
+
+    // Monetag ফাংশন চেক
+    if (typeof window[MONETAG_FN_NAME] !== 'function') {
+      adPlaying = false;
+      watchAdBtn.disabled = false;
+      watchAdBtn.textContent = '📺 Watch Ad (+10 Extra Taps)';
+      showToast('❌ Ad SDK not loaded. Check connection.', 'error');
+      console.error('Monetag function not found:', MONETAG_FN_NAME);
+      return;
+    }
+
+    // Loading মডাল দেখাও
+    modalTitle.textContent = '📺 Advertisement';
+    modalMessage.textContent = 'Please wait while the ad is loading...';
+    modalReward.textContent = '';
+    adProgress.style.display = 'block';
+    adProgressBar.style.width = '0%';
+    modalCloseBtn.style.display = 'none';
+    modalOverlay.classList.add('active');
+
+    // Monetag অ্যাড কল
+    window[MONETAG_FN_NAME]()
+      .then(function(result) {
+        // ✅ অ্যাড সফল
+        console.log('Monetag ad completed:', result);
+
+        adProgress.style.display = 'none';
+        modalCloseBtn.style.display = 'inline-block';
+        adPlaying = false;
+
+        // Reward
+        state.extraTaps += CONFIG.EXTRA_TAPS_PER_AD;
+        saveState();
+
+        modalTitle.textContent = '🎉 Ad Completed!';
+        modalMessage.textContent = `You earned ${CONFIG.EXTRA_TAPS_PER_AD} extra taps!\n\nEach extra tap gives ${CONFIG.ORE_PER_EXTRA_TAP} ore. You can tap ${CONFIG.EXTRA_TAPS_PER_AD} more times.`;
+        modalReward.textContent = `+${CONFIG.EXTRA_TAPS_PER_AD} ⛏️`;
+
+        watchAdBtn.disabled = false;
+        watchAdBtn.textContent = '📺 Watch Ad (+10 Extra Taps)';
+
+        showToast(`✅ +${CONFIG.EXTRA_TAPS_PER_AD} extra taps added!`);
+        updateLockUI();
+      })
+      .catch(function(error) {
+        // ❌ অ্যাড ফেইল / ইউজার বন্ধ করেছে
+        console.warn('Monetag ad error:', error);
+
+        adProgress.style.display = 'none';
+        modalCloseBtn.style.display = 'inline-block';
+        adPlaying = false;
+
+        modalTitle.textContent = '❌ Ad Failed';
+        modalMessage.textContent = 'The ad could not be shown. Please try again later.';
+        modalReward.textContent = '';
+
+        watchAdBtn.disabled = false;
+        watchAdBtn.textContent = '📺 Watch Ad (+10 Extra Taps)';
+
+        showToast('❌ Ad failed. Try again.', 'error');
+      });
+  });
+
+  listBtn.addEventListener('click', function() {
+    if (state.ore <= 0) {
+      showToast('❌ No ore to list!', 'error');
+      return;
+    }
+
+    modalTitle.textContent = '📋 List Ore for Sale';
+    modalMessage.textContent = `You are listing ${formatOre(state.ore)} ore on the marketplace. Once listed, it will be available for trading.`;
+    modalReward.textContent = `${formatOre(state.ore)} 💎`;
+    adProgress.style.display = 'none';
+    modalCloseBtn.style.display = 'inline-block';
+    modalOverlay.classList.add('active');
+  });
+
+  modalCloseBtn.addEventListener('click', function() {
+    modalOverlay.classList.remove('active');
+    updateLockUI();
+  });
+
+  modalOverlay.addEventListener('click', function(e) {
+    if (e.target === modalOverlay) {
+      modalOverlay.classList.remove('active');
+      updateLockUI();
+    }
+  });
+
+  loadState();
+  updateLockUI();
+
+  if (window.Telegram && window.Telegram.WebApp) {
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+    tg.setHeaderColor('#1a1a2e');
+    tg.setBackgroundColor('#1a1a2e');
+  }
+
+})();
+</script>
+</body>
+</html>
